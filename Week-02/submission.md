@@ -1,6 +1,7 @@
 # Week 02 — Submission
 
 **Sprint dates:** _04 Jul 2026 → 11 Jul 2026_
+<br>
 **Scrum Master this week:** Adib Hassan— AI/ML
 
 ## What I did this week
