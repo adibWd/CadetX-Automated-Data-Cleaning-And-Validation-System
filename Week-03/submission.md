@@ -1,11 +1,7 @@
 # Week 03 — Submission
 
 **Sprint dates:** _11 Jul 2026 → 18 Jul 2026_
-**Scrum Master this week:** [Your name] — AI/ML
-**Note on team structure:** as of this week this repository is maintained
-solo; the earlier planned 3-person split did not materialise. Work
-continues under the same modular file-contract design so it stays easy
-to hand off if that changes.
+**Scrum Master this week:** Adib Hassan — AI
 
 ## What I did this week
 
