@@ -17,6 +17,13 @@ WHAT WAS BUILT (Week 2)
                                   clearly-invalid identifier values flagged
                                   instead of silently guessed at)
   - data-quality score          (computed BEFORE and AFTER, delta reported)
+
+WHAT CHANGED (Week 3 — code-review fixes + refinement)
+  - _fix_dates: dayfirst=True alone corrupted unambiguous ISO dates when
+    mixed with UK slash-dates in the same column. Rewritten to parse each
+    date shape explicitly.
+  - quality_score: now optionally folds in format-validity (email/phone)
+    from Module 1's profiling report, per the Week 7 refinement note.
 """
 from __future__ import annotations
 
@@ -42,11 +49,35 @@ UK_PHONE_RE = re.compile(r"^(0|\+44)\d{10}$")
 _CURRENCY_STRIP_RE = re.compile(r"[£$€,\s]")
 
 
-def quality_score(df: pd.DataFrame) -> float:
-    """A simple 0-100 dataset health score: completeness + uniqueness."""
+def quality_score(df: pd.DataFrame, profile: dict | None = None) -> float:
+    """A 0-100 dataset health score.
+
+    Base (always computed): completeness + uniqueness.
+    When Module 1's profiling report is supplied, also folds in
+    format-validity for semantic columns (email/phone) -- this is the
+    Week 7 refinement from the project plan. Backward compatible:
+    quality_score(df) with no profile still returns exactly the old
+    completeness/uniqueness-only score.
+    """
     completeness = 1 - df.isna().sum().sum() / df.size
     uniqueness = 1 - df.duplicated().sum() / len(df)
-    return round(100 * (0.7 * completeness + 0.3 * uniqueness), 2)
+
+    if not profile:
+        return round(100 * (0.7 * completeness + 0.3 * uniqueness), 2)
+
+    format_patterns = {"email": re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$"), "phone": UK_PHONE_RE}
+    metadata = profile.get("metadata", {})
+    validity_scores = []
+    for col, meta in metadata.items():
+        pattern = format_patterns.get(meta.get("semantic_type"))
+        if pattern is None or col not in df.columns:
+            continue
+        non_null = df[col].dropna().astype(str)
+        if len(non_null):
+            validity_scores.append(non_null.str.match(pattern).mean())
+    validity = sum(validity_scores) / len(validity_scores) if validity_scores else 1.0
+
+    return round(100 * (0.5 * completeness + 0.2 * uniqueness + 0.3 * validity), 2)
 
 
 def impute_missing(df: pd.DataFrame, report: dict | None = None):
@@ -71,13 +102,39 @@ def _fix_numeric_as_text(series: pd.Series) -> pd.Series:
 
 
 def _fix_dates(series: pd.Series) -> pd.Series:
-    """Parse mixed date shapes into one consistent datetime dtype.
+    """Parse mixed date shapes ('2024-12-05', '10/04/2020', 'Nov 2023')
+    into one consistent datetime dtype.
 
-    dayfirst=True because the source data uses UK date conventions —
-    without it, ambiguous dates like "03/04/2023" (day <= 12) silently
-    get parsed as US month/day order instead of day/month.
+    NOT a single pd.to_datetime(..., dayfirst=True) call. That was tried
+    first and found to be WRONG: a global dayfirst flag applied to
+    format="mixed" correctly fixes ambiguous UK slash-dates ("03/04/2023"
+    -> 3 April, not 4 March) but then ALSO wrongly reinterprets already-
+    unambiguous ISO dates ("2024-12-05", 5 Dec) as day-first, silently
+    corrupting them to "2024-05-12" (12 May). Verified on the real dataset.
+
+    Fix: detect each row's shape explicitly and parse it with its own
+    unambiguous format string, so no shape's rule can bleed into another's.
+    Unparseable/unrecognised values become NaT rather than a raw string.
     """
-    return pd.to_datetime(series, errors="coerce", format="mixed", dayfirst=True)
+    s = series.astype(str).str.strip()
+    result = pd.Series(pd.NaT, index=s.index, dtype="datetime64[ns]")
+
+    iso_mask = s.str.match(r"^\d{4}-\d{2}-\d{2}$")
+    result[iso_mask] = pd.to_datetime(s[iso_mask], format="%Y-%m-%d", errors="coerce")
+
+    slash_mask = s.str.match(r"^\d{1,2}/\d{1,2}/\d{4}$")
+    result[slash_mask] = pd.to_datetime(s[slash_mask], format="%d/%m/%Y", errors="coerce")  # UK day-first
+
+    monyear_mask = s.str.match(r"^[A-Za-z]{3,9} \d{4}$")
+    result[monyear_mask] = pd.to_datetime(s[monyear_mask], format="%b %Y", errors="coerce")
+
+    # anything not matching a known shape: fall back to the generic parser
+    # (dayfirst=True, since this is UK data) rather than leave it as NaT.
+    remaining = ~(iso_mask | slash_mask | monyear_mask) & s.notna() & (s != "nan")
+    if remaining.any():
+        result[remaining] = pd.to_datetime(s[remaining], errors="coerce", dayfirst=True)
+
+    return result
 
 
 _YES_SET = {"yes", "y", "1", "true"}
@@ -113,11 +170,6 @@ def normalise(df: pd.DataFrame, report: dict | None = None) -> tuple[pd.DataFram
         inferred = col_meta.get("inferred_type")
         semantic = col_meta.get("semantic_type")
 
-        # 1) numbers stored as text with currency symbols / commas.
-        #    Only when genuinely numeric (semantic_type == "numeric").
-        #    Columns like phone/postcode can ALSO get flagged
-        #    "numeric_as_text" but must never be coerced to float --
-        #    that would destroy leading zeros and identifier meaning.
         if inferred == "numeric_as_text" and semantic == "numeric":
             before_sample = df[col].dropna().astype(str).head(3).tolist()
             df[col] = _fix_numeric_as_text(df[col])
@@ -126,7 +178,6 @@ def normalise(df: pd.DataFrame, report: dict | None = None) -> tuple[pd.DataFram
                              "after_sample": df[col].dropna().head(3).tolist()}
             continue
 
-        # 2) date-ish columns with more than one shape
         date_issue = (report or {}).get("rules", {}).get("inconsistent_formats", {}).get(col, {})
         if date_issue.get("issue") == "multiple date formats present":
             df[col] = _fix_dates(df[col])
@@ -134,7 +185,6 @@ def normalise(df: pd.DataFrame, report: dict | None = None) -> tuple[pd.DataFram
                              "formats_found": date_issue.get("formats_found")}
             continue
 
-        # 3) binary-ish categorical columns (Yes/yes/Y/1 style spellings)
         if df[col].dtype == object or pd.api.types.is_string_dtype(df[col]):
             distinct = set(str(v).strip().lower() for v in df[col].dropna().unique())
             if distinct and distinct.issubset(_YES_SET | _NO_SET):
@@ -144,8 +194,6 @@ def normalise(df: pd.DataFrame, report: dict | None = None) -> tuple[pd.DataFram
                                  "distinct_before": before_sample}
                 continue
 
-        # 4) identifier-like columns with obviously-junk placeholder values
-        #    (e.g. phone = "07xx"). Flagged, not guessed at.
         if semantic == "phone":
             is_invalid = ~df[col].astype(str).str.match(UK_PHONE_RE, na=False)
             n_invalid = int((is_invalid & df[col].notna()).sum())
@@ -166,7 +214,7 @@ def main():
     df = pd.read_csv(input_path)
     profile = read_json(PROFILING_REPORT)
 
-    score_before = quality_score(df)
+    score_before = quality_score(df, profile=profile)
     actions = []
 
     df, dedup_log = drop_duplicates(df)
@@ -178,7 +226,7 @@ def main():
     df, impute_log = impute_missing(df, report=profile)
     actions.append({"step": "impute_missing", "details": impute_log})
 
-    score_after = quality_score(df)
+    score_after = quality_score(df, profile=profile)
 
     CLEANED_DATA.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(CLEANED_DATA, index=False)
