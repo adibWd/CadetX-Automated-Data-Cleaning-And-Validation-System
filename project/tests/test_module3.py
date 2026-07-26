@@ -1,0 +1,126 @@
+"""
+MODULE 3 — TEST SUITE
+======================
+Known-answer tests for the validation module.
+
+Run:  pytest tests/test_module3.py -v
+"""
+import sys
+from pathlib import Path
+
+import pandas as pd
+
+sys.path.append(str(Path(__file__).resolve().parents[1] / "modules" / "m3_validation"))
+
+from validate import (check_format_column, check_numeric_range,
+                       check_unexpected_negatives, check_categorical_membership,
+                       rule_based_checks, anomaly_detection, health_score,
+                       EMAIL_RE, UK_PHONE_RE, UK_POSTCODE_RE)
+
+
+def test_email_format_check_counts_valid_and_invalid():
+    s = pd.Series(["a@b.com", "not-an-email", "c@d.co.uk"])
+    result = check_format_column(s, EMAIL_RE, "email")
+    assert result["checked"] == 3
+    assert result["valid"] == 2
+    assert result["invalid"] == 1
+
+
+def test_phone_format_matches_uk_pattern_exactly_10_digits():
+    s = pd.Series(["07973832060", "0797383206", "INVALID_PHONE"])
+    result = check_format_column(s, UK_PHONE_RE, "phone")
+    assert result["valid"] == 1
+    assert result["invalid"] == 2
+
+
+def test_postcode_format_check():
+    s = pd.Series(["SO31 8JT", "12345", "ABCDE"])
+    result = check_format_column(s, UK_POSTCODE_RE, "postcode")
+    assert result["valid"] == 1
+    assert result["invalid"] == 2
+
+
+def test_range_check_uses_profiled_stats_when_available():
+    s = pd.Series([10, 20, 150])
+    result = check_numeric_range(s, "age", {"kind": "numeric", "min": 0, "max": 100})
+    assert result["valid"] == 2
+    assert result["invalid"] == 1
+    assert result["range_source"] == "profiling_report"
+
+
+def test_range_check_falls_back_to_recomputed_stats_when_profile_missing():
+    s = pd.Series([10.0, 20.0, 30.0])
+    result = check_numeric_range(s, "monthly_charges", {})
+    assert result["checked"] == 3
+    assert result["invalid"] == 0
+    assert result["range_source"] == "recomputed_from_cleaned_data"
+
+
+def test_unexpected_negatives_flagged_when_rare():
+    s = pd.Series([10, 20, 30, -5, 40, 50, 60, 70, 80, 90])
+    result = check_unexpected_negatives(s, "monthly_charges", threshold_pct=10.0)
+    assert result is not None
+    assert result["invalid"] == 1
+
+
+def test_unexpected_negatives_skipped_when_common():
+    s = pd.Series([10, -10, 20, -20, 30, -30])
+    result = check_unexpected_negatives(s, "profit", threshold_pct=10.0)
+    assert result is None
+
+
+def test_unexpected_negatives_none_when_no_negatives_present():
+    s = pd.Series([10, 20, 30])
+    assert check_unexpected_negatives(s, "age") is None
+
+
+def test_categorical_membership_records_allowed_set():
+    s = pd.Series(["Yes", "No", "Yes", "Yes", "No"])
+    result = check_categorical_membership(s, "churn")
+    assert result["allowed_values"] == ["No", "Yes"]
+    assert result["invalid"] == 0
+
+
+def test_categorical_membership_skipped_for_high_cardinality():
+    s = pd.Series([f"id_{i}" for i in range(50)])
+    result = check_categorical_membership(s, "customer_id", max_categories=20)
+    assert result is None
+
+
+def test_rule_based_checks_routes_columns_by_semantic_type():
+    df = pd.DataFrame({
+        "email": ["a@b.com", "bad-email"],
+        "age": [25, 40],
+    })
+    profile = {
+        "metadata": {"email": {"semantic_type": "email"}, "age": {}},
+        "profiling": {"distributions": {"age": {"kind": "numeric", "min": 0, "max": 120}}},
+    }
+    results = rule_based_checks(df, profile=profile)
+    assert results["email"]["rule"] == "email_format"
+    assert results["age"]["rule"] == "age_range"
+
+
+def test_anomaly_detection_returns_a_bounded_count():
+    df = pd.DataFrame({"a": list(range(100)), "b": list(range(100, 200))})
+    result = anomaly_detection(df)
+    assert 0 <= result["anomalies"] <= result["checked"]
+
+
+def test_anomaly_detection_handles_too_little_data_gracefully():
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    result = anomaly_detection(df)
+    assert result["anomalies"] == 0
+    assert "note" in result
+
+
+def test_health_score_is_100_when_everything_passes():
+    rules = {"a": {"checked": 10, "valid": 10}}
+    anomalies = {"checked": 10, "anomalies": 0}
+    assert health_score(rules, anomalies) == 100.0
+
+
+def test_health_score_drops_when_rules_fail():
+    rules = {"a": {"checked": 10, "valid": 5}}
+    anomalies = {"checked": 10, "anomalies": 0}
+    assert health_score(rules, anomalies) < 100.0
