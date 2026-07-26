@@ -1,8 +1,7 @@
 # Week 04 — Submission
 
 **Sprint dates:** _18 Jul 2026 → 25 Jul 2026_
-**Maintainer this week:** [Your name] — solo
-
+**Scrum Master this week:** Adib Hassan— AI
 ## What I did this week
 
 ### 1. Built Module 4 — Pipeline Orchestration
