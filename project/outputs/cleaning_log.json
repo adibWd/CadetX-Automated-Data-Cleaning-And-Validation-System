@@ -1,0 +1,179 @@
+{
+  "quality_score_before": 97.8,
+  "quality_score_after": 98.06,
+  "quality_delta": 0.26,
+  "actions": [
+    {
+      "step": "drop_duplicates",
+      "exact_duplicates_removed": 30,
+      "rows_before": 1030,
+      "rows_after": 1000
+    },
+    {
+      "step": "normalise",
+      "details": {
+        "phone": {
+          "action": "flagged unparseable phone values (not guessed at)",
+          "count": 30
+        },
+        "monthly_charges": {
+          "action": "numeric_as_text -> float (stripped currency/commas)",
+          "before_sample": [
+            "29.32",
+            "55.62",
+            "64.87"
+          ],
+          "after_sample": [
+            29.32,
+            55.62,
+            64.87
+          ]
+        },
+        "install_date": {
+          "action": "parsed mixed date formats -> datetime64",
+          "formats_found": [
+            "YYYY-MM-DD",
+            "Mon YYYY",
+            "DD/MM/YYYY"
+          ]
+        },
+        "churn": {
+          "action": "unified Yes/No-style spellings",
+          "distinct_before": [
+            "0",
+            "1",
+            "N",
+            "No",
+            "Y"
+          ]
+        }
+      }
+    },
+    {
+      "step": "impute_missing",
+      "details": [
+        {
+          "column": "email",
+          "missing": 59,
+          "action": "filled with mode",
+          "fill_value": "no-at-sign.com"
+        },
+        {
+          "column": "postcode",
+          "missing": 48,
+          "action": "filled with mode",
+          "fill_value": "OX 99"
+        },
+        {
+          "column": "tenure_months",
+          "missing": 28,
+          "action": "filled with median",
+          "fill_value": 35.0
+        },
+        {
+          "column": "nps_score",
+          "missing": 40,
+          "action": "filled with median",
+          "fill_value": 5.0
+        }
+      ]
+    }
+  ],
+  "used_profile_flags": {
+    "potential_pii": {
+      "customer_id": {
+        "semantic_type": "identifier",
+        "reason": "values or name suggest identifier"
+      },
+      "full_name": {
+        "semantic_type": "person_name",
+        "reason": "values or name suggest person name"
+      },
+      "email": {
+        "semantic_type": "email",
+        "reason": "values or name suggest email"
+      },
+      "phone": {
+        "semantic_type": "phone",
+        "reason": "values or name suggest phone"
+      },
+      "postcode": {
+        "semantic_type": "postcode",
+        "reason": "values or name suggest postcode"
+      },
+      "payment_method": {
+        "semantic_type": "person_name",
+        "reason": "values or name suggest person name"
+      }
+    },
+    "inconsistent_formats": {
+      "email": {
+        "expected_format": "email",
+        "invalid_count": 41,
+        "invalid_pct": 4.24,
+        "examples": [
+          "a@b",
+          "john.smith",
+          "no-at-sign.com"
+        ]
+      },
+      "phone": {
+        "expected_format": "phone",
+        "invalid_count": 30,
+        "invalid_pct": 2.91,
+        "examples": [
+          "07xx",
+          "not-a-number",
+          "123"
+        ]
+      },
+      "postcode": {
+        "expected_format": "postcode",
+        "invalid_count": 31,
+        "invalid_pct": 3.17,
+        "examples": [
+          "12345",
+          "ABCDE",
+          "OX 99"
+        ]
+      },
+      "install_date": {
+        "expected_format": "consistent date format",
+        "issue": "multiple date formats present",
+        "formats_found": [
+          "YYYY-MM-DD",
+          "Mon YYYY",
+          "DD/MM/YYYY"
+        ]
+      }
+    },
+    "suspicious_columns": {
+      "customer_id": {
+        "reasons": [
+          "very high cardinality (likely an identifier or free text)"
+        ]
+      },
+      "phone": {
+        "reasons": [
+          "mixed value types (e.g. numbers stored alongside text)",
+          "very high cardinality (likely an identifier or free text)"
+        ]
+      },
+      "postcode": {
+        "reasons": [
+          "mixed value types (e.g. numbers stored alongside text)"
+        ]
+      },
+      "monthly_charges": {
+        "reasons": [
+          "mixed value types (e.g. numbers stored alongside text)"
+        ]
+      },
+      "churn": {
+        "reasons": [
+          "mixed value types (e.g. numbers stored alongside text)"
+        ]
+      }
+    }
+  }
+}

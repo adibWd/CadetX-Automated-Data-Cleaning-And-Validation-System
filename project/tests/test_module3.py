@@ -49,6 +49,12 @@ def test_range_check_uses_profiled_stats_when_available():
 
 
 def test_range_check_falls_back_to_recomputed_stats_when_profile_missing():
+    """Regression test: a column that was 'numeric_as_text' in the raw data
+    (e.g. currency-as-text) has no numeric stats in Module 1's profiling
+    report. The range check must still run, using the cleaned data's own
+    min/max, instead of silently skipping the column -- this is exactly
+    what happened to monthly_charges before this fallback was added.
+    """
     s = pd.Series([10.0, 20.0, 30.0])
     result = check_numeric_range(s, "monthly_charges", {})
     assert result["checked"] == 3
@@ -64,6 +70,9 @@ def test_unexpected_negatives_flagged_when_rare():
 
 
 def test_unexpected_negatives_skipped_when_common():
+    """A column where negatives are common (e.g. profit/loss) is more
+    likely genuinely signed than a data-entry error, so it's not flagged.
+    """
     s = pd.Series([10, -10, 20, -20, 30, -30])
     result = check_unexpected_negatives(s, "profit", threshold_pct=10.0)
     assert result is None
@@ -124,3 +133,34 @@ def test_health_score_drops_when_rules_fail():
     rules = {"a": {"checked": 10, "valid": 5}}
     anomalies = {"checked": 10, "anomalies": 0}
     assert health_score(rules, anomalies) < 100.0
+
+
+# ---------------- Week 5 hardening: edge cases ----------------
+
+def test_categorical_membership_all_null_returns_none():
+    """A column that's entirely missing has nothing to record as an
+    'allowed set' -- must return None, not crash on nunique() of nothing.
+    """
+    s = pd.Series([None, None, None])
+    assert check_categorical_membership(s, "some_col") is None
+
+
+def test_rule_based_checks_handles_completely_empty_profile():
+    """rule_based_checks(df, profile={}) -- no metadata, no distributions
+    at all -- must still run (falls back to categorical/dtype-based
+    routing for every column) rather than raising a KeyError.
+    """
+    df = pd.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"]})
+    results = rule_based_checks(df, profile={})
+    assert "a" in results
+    assert "b" in results
+
+
+def test_anomaly_detection_with_single_numeric_column():
+    """Isolation Forest needs at least one feature column -- confirm a
+    single-column numeric frame doesn't error out.
+    """
+    df = pd.DataFrame({"a": list(range(50))})
+    result = anomaly_detection(df)
+    assert result["checked"] == 50
+    assert 0 <= result["anomalies"] <= 50

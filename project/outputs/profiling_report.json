@@ -1,0 +1,791 @@
+{
+  "dataset": {
+    "source": "data/raw/broadband_customers.csv",
+    "rows": 1030,
+    "columns": 16,
+    "column_names": [
+      "customer_id",
+      "full_name",
+      "email",
+      "phone",
+      "postcode",
+      "region",
+      "property_type",
+      "package",
+      "monthly_charges",
+      "contract_type",
+      "tenure_months",
+      "install_date",
+      "payment_method",
+      "nps_score",
+      "support_tickets",
+      "churn"
+    ]
+  },
+  "generated_at": "2026-08-03T02:02:47",
+  "metadata": {
+    "customer_id": {
+      "pandas_dtype": "int64",
+      "inferred_type": "integer",
+      "semantic_type": "identifier",
+      "mixed_type": {
+        "is_mixed": false,
+        "python_types": [
+          "number"
+        ],
+        "examples": []
+      }
+    },
+    "full_name": {
+      "pandas_dtype": "str",
+      "inferred_type": "text",
+      "semantic_type": "person_name",
+      "mixed_type": {
+        "is_mixed": false,
+        "python_types": [
+          "string"
+        ],
+        "examples": []
+      }
+    },
+    "email": {
+      "pandas_dtype": "str",
+      "inferred_type": "text",
+      "semantic_type": "email",
+      "mixed_type": {
+        "is_mixed": false,
+        "python_types": [
+          "string"
+        ],
+        "examples": []
+      }
+    },
+    "phone": {
+      "pandas_dtype": "str",
+      "inferred_type": "numeric_as_text",
+      "semantic_type": "phone",
+      "mixed_type": {
+        "is_mixed": true,
+        "python_types": [
+          "number",
+          "string"
+        ],
+        "examples": [
+          "07973832060",
+          "07xx"
+        ]
+      }
+    },
+    "postcode": {
+      "pandas_dtype": "str",
+      "inferred_type": "text",
+      "semantic_type": "postcode",
+      "mixed_type": {
+        "is_mixed": true,
+        "python_types": [
+          "number",
+          "string"
+        ],
+        "examples": [
+          "12345",
+          "SO31 8JT"
+        ]
+      }
+    },
+    "region": {
+      "pandas_dtype": "str",
+      "inferred_type": "categorical",
+      "semantic_type": "categorical",
+      "mixed_type": {
+        "is_mixed": false,
+        "python_types": [
+          "string"
+        ],
+        "examples": []
+      }
+    },
+    "property_type": {
+      "pandas_dtype": "str",
+      "inferred_type": "categorical",
+      "semantic_type": "categorical",
+      "mixed_type": {
+        "is_mixed": false,
+        "python_types": [
+          "string"
+        ],
+        "examples": []
+      }
+    },
+    "package": {
+      "pandas_dtype": "str",
+      "inferred_type": "categorical",
+      "semantic_type": "categorical",
+      "mixed_type": {
+        "is_mixed": false,
+        "python_types": [
+          "string"
+        ],
+        "examples": []
+      }
+    },
+    "monthly_charges": {
+      "pandas_dtype": "str",
+      "inferred_type": "numeric_as_text",
+      "semantic_type": "numeric",
+      "mixed_type": {
+        "is_mixed": true,
+        "python_types": [
+          "number",
+          "string"
+        ],
+        "examples": [
+          "29.32",
+          "\u00a368.48"
+        ]
+      }
+    },
+    "contract_type": {
+      "pandas_dtype": "str",
+      "inferred_type": "categorical",
+      "semantic_type": "categorical",
+      "mixed_type": {
+        "is_mixed": false,
+        "python_types": [
+          "string"
+        ],
+        "examples": []
+      }
+    },
+    "tenure_months": {
+      "pandas_dtype": "float64",
+      "inferred_type": "float",
+      "semantic_type": "numeric",
+      "mixed_type": {
+        "is_mixed": false,
+        "python_types": [
+          "number"
+        ],
+        "examples": []
+      }
+    },
+    "install_date": {
+      "pandas_dtype": "str",
+      "inferred_type": "text",
+      "semantic_type": "text",
+      "mixed_type": {
+        "is_mixed": false,
+        "python_types": [
+          "string"
+        ],
+        "examples": []
+      }
+    },
+    "payment_method": {
+      "pandas_dtype": "str",
+      "inferred_type": "categorical",
+      "semantic_type": "person_name",
+      "mixed_type": {
+        "is_mixed": false,
+        "python_types": [
+          "string"
+        ],
+        "examples": []
+      }
+    },
+    "nps_score": {
+      "pandas_dtype": "float64",
+      "inferred_type": "float",
+      "semantic_type": "numeric",
+      "mixed_type": {
+        "is_mixed": false,
+        "python_types": [
+          "number"
+        ],
+        "examples": []
+      }
+    },
+    "support_tickets": {
+      "pandas_dtype": "int64",
+      "inferred_type": "integer",
+      "semantic_type": "numeric",
+      "mixed_type": {
+        "is_mixed": false,
+        "python_types": [
+          "number"
+        ],
+        "examples": []
+      }
+    },
+    "churn": {
+      "pandas_dtype": "str",
+      "inferred_type": "categorical",
+      "semantic_type": "categorical",
+      "mixed_type": {
+        "is_mixed": true,
+        "python_types": [
+          "number",
+          "string"
+        ],
+        "examples": [
+          "0",
+          "No"
+        ]
+      }
+    }
+  },
+  "profiling": {
+    "missing_values": {
+      "per_column": {
+        "customer_id": {
+          "missing": 0,
+          "missing_pct": 0.0
+        },
+        "full_name": {
+          "missing": 0,
+          "missing_pct": 0.0
+        },
+        "email": {
+          "missing": 62,
+          "missing_pct": 6.02
+        },
+        "phone": {
+          "missing": 0,
+          "missing_pct": 0.0
+        },
+        "postcode": {
+          "missing": 51,
+          "missing_pct": 4.95
+        },
+        "region": {
+          "missing": 0,
+          "missing_pct": 0.0
+        },
+        "property_type": {
+          "missing": 0,
+          "missing_pct": 0.0
+        },
+        "package": {
+          "missing": 0,
+          "missing_pct": 0.0
+        },
+        "monthly_charges": {
+          "missing": 0,
+          "missing_pct": 0.0
+        },
+        "contract_type": {
+          "missing": 0,
+          "missing_pct": 0.0
+        },
+        "tenure_months": {
+          "missing": 28,
+          "missing_pct": 2.72
+        },
+        "install_date": {
+          "missing": 0,
+          "missing_pct": 0.0
+        },
+        "payment_method": {
+          "missing": 0,
+          "missing_pct": 0.0
+        },
+        "nps_score": {
+          "missing": 40,
+          "missing_pct": 3.88
+        },
+        "support_tickets": {
+          "missing": 0,
+          "missing_pct": 0.0
+        },
+        "churn": {
+          "missing": 0,
+          "missing_pct": 0.0
+        }
+      },
+      "overall": {
+        "total_missing_cells": 181,
+        "total_cells": 16480,
+        "missing_pct": 1.1,
+        "complete_columns": [
+          "customer_id",
+          "full_name",
+          "phone",
+          "region",
+          "property_type",
+          "package",
+          "monthly_charges",
+          "contract_type",
+          "install_date",
+          "payment_method",
+          "support_tickets",
+          "churn"
+        ],
+        "empty_columns": []
+      }
+    },
+    "type_consistency": {
+      "customer_id": {
+        "inferred_type": "integer",
+        "consistency_pct": 100.0,
+        "nonconforming": 0
+      },
+      "full_name": {
+        "inferred_type": "text",
+        "consistency_pct": 100.0,
+        "nonconforming": 0
+      },
+      "email": {
+        "inferred_type": "text",
+        "consistency_pct": 100.0,
+        "nonconforming": 0
+      },
+      "phone": {
+        "inferred_type": "numeric_as_text",
+        "consistency_pct": 98.16,
+        "nonconforming": 19
+      },
+      "postcode": {
+        "inferred_type": "text",
+        "consistency_pct": 100.0,
+        "nonconforming": 0
+      },
+      "region": {
+        "inferred_type": "categorical",
+        "consistency_pct": 100.0,
+        "nonconforming": 0
+      },
+      "property_type": {
+        "inferred_type": "categorical",
+        "consistency_pct": 100.0,
+        "nonconforming": 0
+      },
+      "package": {
+        "inferred_type": "categorical",
+        "consistency_pct": 100.0,
+        "nonconforming": 0
+      },
+      "monthly_charges": {
+        "inferred_type": "numeric_as_text",
+        "consistency_pct": 100.0,
+        "nonconforming": 0
+      },
+      "contract_type": {
+        "inferred_type": "categorical",
+        "consistency_pct": 100.0,
+        "nonconforming": 0
+      },
+      "tenure_months": {
+        "inferred_type": "float",
+        "consistency_pct": 100.0,
+        "nonconforming": 0
+      },
+      "install_date": {
+        "inferred_type": "text",
+        "consistency_pct": 100.0,
+        "nonconforming": 0
+      },
+      "payment_method": {
+        "inferred_type": "categorical",
+        "consistency_pct": 100.0,
+        "nonconforming": 0
+      },
+      "nps_score": {
+        "inferred_type": "float",
+        "consistency_pct": 100.0,
+        "nonconforming": 0
+      },
+      "support_tickets": {
+        "inferred_type": "integer",
+        "consistency_pct": 100.0,
+        "nonconforming": 0
+      },
+      "churn": {
+        "inferred_type": "categorical",
+        "consistency_pct": 100.0,
+        "nonconforming": 0
+      }
+    },
+    "cardinality": {
+      "customer_id": {
+        "unique_values": 1000,
+        "cardinality_ratio": 0.9709,
+        "is_constant": false,
+        "is_high_cardinality": true
+      },
+      "full_name": {
+        "unique_values": 363,
+        "cardinality_ratio": 0.3524,
+        "is_constant": false,
+        "is_high_cardinality": false
+      },
+      "email": {
+        "unique_values": 900,
+        "cardinality_ratio": 0.8738,
+        "is_constant": false,
+        "is_high_cardinality": false
+      },
+      "phone": {
+        "unique_values": 973,
+        "cardinality_ratio": 0.9447,
+        "is_constant": false,
+        "is_high_cardinality": true
+      },
+      "postcode": {
+        "unique_values": 925,
+        "cardinality_ratio": 0.8981,
+        "is_constant": false,
+        "is_high_cardinality": false
+      },
+      "region": {
+        "unique_values": 30,
+        "cardinality_ratio": 0.0291,
+        "is_constant": false,
+        "is_high_cardinality": false
+      },
+      "property_type": {
+        "unique_values": 6,
+        "cardinality_ratio": 0.0058,
+        "is_constant": false,
+        "is_high_cardinality": false
+      },
+      "package": {
+        "unique_values": 4,
+        "cardinality_ratio": 0.0039,
+        "is_constant": false,
+        "is_high_cardinality": false
+      },
+      "monthly_charges": {
+        "unique_values": 825,
+        "cardinality_ratio": 0.801,
+        "is_constant": false,
+        "is_high_cardinality": false
+      },
+      "contract_type": {
+        "unique_values": 3,
+        "cardinality_ratio": 0.0029,
+        "is_constant": false,
+        "is_high_cardinality": false
+      },
+      "tenure_months": {
+        "unique_values": 74,
+        "cardinality_ratio": 0.0718,
+        "is_constant": false,
+        "is_high_cardinality": false
+      },
+      "install_date": {
+        "unique_values": 803,
+        "cardinality_ratio": 0.7796,
+        "is_constant": false,
+        "is_high_cardinality": false
+      },
+      "payment_method": {
+        "unique_values": 3,
+        "cardinality_ratio": 0.0029,
+        "is_constant": false,
+        "is_high_cardinality": false
+      },
+      "nps_score": {
+        "unique_values": 14,
+        "cardinality_ratio": 0.0136,
+        "is_constant": false,
+        "is_high_cardinality": false
+      },
+      "support_tickets": {
+        "unique_values": 5,
+        "cardinality_ratio": 0.0049,
+        "is_constant": false,
+        "is_high_cardinality": false
+      },
+      "churn": {
+        "unique_values": 8,
+        "cardinality_ratio": 0.0078,
+        "is_constant": false,
+        "is_high_cardinality": false
+      }
+    },
+    "correlations": {
+      "customer_id": {
+        "customer_id": 1.0,
+        "tenure_months": 0.003,
+        "nps_score": -0.016,
+        "support_tickets": 0.004
+      },
+      "tenure_months": {
+        "customer_id": 0.003,
+        "tenure_months": 1.0,
+        "nps_score": 0.044,
+        "support_tickets": -0.015
+      },
+      "nps_score": {
+        "customer_id": -0.016,
+        "tenure_months": 0.044,
+        "nps_score": 1.0,
+        "support_tickets": 0.019
+      },
+      "support_tickets": {
+        "customer_id": 0.004,
+        "tenure_months": -0.015,
+        "nps_score": 0.019,
+        "support_tickets": 1.0
+      }
+    },
+    "distributions": {
+      "customer_id": {
+        "kind": "numeric",
+        "min": 10000.0,
+        "max": 10999.0,
+        "mean": 10500.596,
+        "median": 10499.5,
+        "std": 289.412,
+        "q1": 10250.25,
+        "q3": 10751.75,
+        "skew": -0.001
+      },
+      "full_name": {
+        "kind": "categorical",
+        "top_values": {
+          "Olivia Thomas": 8,
+          "Olivia Walker": 8,
+          "Lily Brown": 7,
+          "Jack Brown": 7,
+          "George Thomas": 7
+        }
+      },
+      "email": {
+        "kind": "categorical",
+        "top_values": {
+          "no-at-sign.com": 16,
+          "a@b": 14,
+          "john.smith": 11,
+          "george.davies17@btinternet.com": 3,
+          "thomas.clarke49@yahoo.co.uk": 2
+        }
+      },
+      "phone": {
+        "kind": "categorical",
+        "top_values": {
+          "07xx": 12,
+          "123": 11,
+          "not-a-number": 7,
+          "07331454615": 2,
+          "07474370194": 2
+        }
+      },
+      "postcode": {
+        "kind": "categorical",
+        "top_values": {
+          "OX 99": 15,
+          "12345": 11,
+          "ABCDE": 5,
+          "RG19 4FQ": 2,
+          "MK13 2DT": 2
+        }
+      },
+      "region": {
+        "kind": "categorical",
+        "top_values": {
+          "Berkshire": 141,
+          "Oxfordshire": 137,
+          "Wiltshire": 135,
+          "Cambridgeshire": 123,
+          "Hampshire": 117
+        }
+      },
+      "property_type": {
+        "kind": "categorical",
+        "top_values": {
+          "Semi-detached": 177,
+          "Terraced": 176,
+          "Cottage": 174,
+          "Detached": 172,
+          "Farmhouse": 166
+        }
+      },
+      "package": {
+        "kind": "categorical",
+        "top_values": {
+          "Fibre 500": 272,
+          "Fibre 300": 272,
+          "Fibre 100": 264,
+          "Fibre 900": 222
+        }
+      },
+      "monthly_charges": {
+        "kind": "categorical",
+        "top_values": {
+          "-10.0": 13,
+          "-29.99": 8,
+          "29.32": 4,
+          "54.66": 4,
+          "48.87": 4
+        }
+      },
+      "contract_type": {
+        "kind": "categorical",
+        "top_values": {
+          "12-month": 368,
+          "Monthly": 339,
+          "24-month": 323
+        }
+      },
+      "tenure_months": {
+        "kind": "numeric",
+        "min": -5.0,
+        "max": 72.0,
+        "mean": 35.454,
+        "median": 35.0,
+        "std": 21.183,
+        "q1": 17.0,
+        "q3": 54.0,
+        "skew": -0.003
+      },
+      "install_date": {
+        "kind": "categorical",
+        "top_values": {
+          "2021-04-27": 4,
+          "2025-04-05": 3,
+          "2023-09-17": 3,
+          "2023-06-02": 3,
+          "2020-03-23": 3
+        }
+      },
+      "payment_method": {
+        "kind": "categorical",
+        "top_values": {
+          "Credit Card": 344,
+          "Bank Transfer": 344,
+          "Direct Debit": 342
+        }
+      },
+      "nps_score": {
+        "kind": "numeric",
+        "min": 0.0,
+        "max": 99.0,
+        "mean": 5.748,
+        "median": 5.0,
+        "std": 8.506,
+        "q1": 2.0,
+        "q3": 8.0,
+        "skew": 9.318
+      },
+      "support_tickets": {
+        "kind": "numeric",
+        "min": 0.0,
+        "max": 5.0,
+        "mean": 1.521,
+        "median": 1.0,
+        "std": 1.646,
+        "q1": 0.0,
+        "q3": 3.0,
+        "skew": 0.909
+      },
+      "churn": {
+        "kind": "categorical",
+        "top_values": {
+          "No": 702,
+          "Yes": 225,
+          "1": 23,
+          "no": 22,
+          "0": 20
+        }
+      }
+    }
+  },
+  "rules": {
+    "potential_pii": {
+      "customer_id": {
+        "semantic_type": "identifier",
+        "reason": "values or name suggest identifier"
+      },
+      "full_name": {
+        "semantic_type": "person_name",
+        "reason": "values or name suggest person name"
+      },
+      "email": {
+        "semantic_type": "email",
+        "reason": "values or name suggest email"
+      },
+      "phone": {
+        "semantic_type": "phone",
+        "reason": "values or name suggest phone"
+      },
+      "postcode": {
+        "semantic_type": "postcode",
+        "reason": "values or name suggest postcode"
+      },
+      "payment_method": {
+        "semantic_type": "person_name",
+        "reason": "values or name suggest person name"
+      }
+    },
+    "inconsistent_formats": {
+      "email": {
+        "expected_format": "email",
+        "invalid_count": 41,
+        "invalid_pct": 4.24,
+        "examples": [
+          "a@b",
+          "john.smith",
+          "no-at-sign.com"
+        ]
+      },
+      "phone": {
+        "expected_format": "phone",
+        "invalid_count": 30,
+        "invalid_pct": 2.91,
+        "examples": [
+          "07xx",
+          "not-a-number",
+          "123"
+        ]
+      },
+      "postcode": {
+        "expected_format": "postcode",
+        "invalid_count": 31,
+        "invalid_pct": 3.17,
+        "examples": [
+          "12345",
+          "ABCDE",
+          "OX 99"
+        ]
+      },
+      "install_date": {
+        "expected_format": "consistent date format",
+        "issue": "multiple date formats present",
+        "formats_found": [
+          "YYYY-MM-DD",
+          "Mon YYYY",
+          "DD/MM/YYYY"
+        ]
+      }
+    },
+    "suspicious_columns": {
+      "customer_id": {
+        "reasons": [
+          "very high cardinality (likely an identifier or free text)"
+        ]
+      },
+      "phone": {
+        "reasons": [
+          "mixed value types (e.g. numbers stored alongside text)",
+          "very high cardinality (likely an identifier or free text)"
+        ]
+      },
+      "postcode": {
+        "reasons": [
+          "mixed value types (e.g. numbers stored alongside text)"
+        ]
+      },
+      "monthly_charges": {
+        "reasons": [
+          "mixed value types (e.g. numbers stored alongside text)"
+        ]
+      },
+      "churn": {
+        "reasons": [
+          "mixed value types (e.g. numbers stored alongside text)"
+        ]
+      }
+    }
+  },
+  "figures": {}
+}
