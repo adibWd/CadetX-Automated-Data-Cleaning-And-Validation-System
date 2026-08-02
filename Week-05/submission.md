@@ -7,7 +7,7 @@
 ## Scope decision for the remaining weeks (5–12)
 
 The original 12-week plan assumed a 3-person team; this project has been
-solo since Week 1. Rescoped the remaining weeks to what's realistic and
+solo since Week 2. Rescoped the remaining weeks to what's realistic and
 still meets every rubric criterion (consistency, engineering quality,
 completeness, documentation, final demo):
 
