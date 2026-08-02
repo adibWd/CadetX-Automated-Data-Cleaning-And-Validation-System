@@ -1,0 +1,214 @@
+{
+  "rule_based": {
+    "customer_id": {
+      "rule": "customer_id_range",
+      "checked": 1000,
+      "valid": 1000,
+      "invalid": 0,
+      "expected_range": [
+        10000.0,
+        10999.0
+      ],
+      "range_source": "profiling_report"
+    },
+    "email": {
+      "rule": "email_format",
+      "checked": 1000,
+      "valid": 901,
+      "invalid": 99
+    },
+    "phone": {
+      "rule": "phone_format",
+      "checked": 1000,
+      "valid": 970,
+      "invalid": 30
+    },
+    "postcode": {
+      "rule": "postcode_format",
+      "checked": 1000,
+      "valid": 922,
+      "invalid": 78
+    },
+    "property_type": {
+      "rule": "property_type_categorical_membership",
+      "checked": 1000,
+      "valid": 1000,
+      "invalid": 0,
+      "allowed_values": [
+        "Bungalow",
+        "Cottage",
+        "Detached",
+        "Farmhouse",
+        "Semi-detached",
+        "Terraced"
+      ]
+    },
+    "package": {
+      "rule": "package_categorical_membership",
+      "checked": 1000,
+      "valid": 1000,
+      "invalid": 0,
+      "allowed_values": [
+        "Fibre 100",
+        "Fibre 300",
+        "Fibre 500",
+        "Fibre 900"
+      ]
+    },
+    "monthly_charges": {
+      "rule": "monthly_charges_range",
+      "checked": 1000,
+      "valid": 1000,
+      "invalid": 0,
+      "expected_range": [
+        -29.99,
+        69.97
+      ],
+      "range_source": "recomputed_from_cleaned_data"
+    },
+    "monthly_charges__negatives": {
+      "rule": "monthly_charges_unexpected_negatives",
+      "checked": 1000,
+      "valid": 980,
+      "invalid": 20,
+      "pct_negative": 2.0
+    },
+    "contract_type": {
+      "rule": "contract_type_categorical_membership",
+      "checked": 1000,
+      "valid": 1000,
+      "invalid": 0,
+      "allowed_values": [
+        "12-month",
+        "24-month",
+        "Monthly"
+      ]
+    },
+    "tenure_months": {
+      "rule": "tenure_months_range",
+      "checked": 1000,
+      "valid": 1000,
+      "invalid": 0,
+      "expected_range": [
+        -5.0,
+        72.0
+      ],
+      "range_source": "profiling_report"
+    },
+    "tenure_months__negatives": {
+      "rule": "tenure_months_unexpected_negatives",
+      "checked": 1000,
+      "valid": 980,
+      "invalid": 20,
+      "pct_negative": 2.0
+    },
+    "payment_method": {
+      "rule": "payment_method_categorical_membership",
+      "checked": 1000,
+      "valid": 1000,
+      "invalid": 0,
+      "allowed_values": [
+        "Bank Transfer",
+        "Credit Card",
+        "Direct Debit"
+      ]
+    },
+    "nps_score": {
+      "rule": "nps_score_range",
+      "checked": 1000,
+      "valid": 1000,
+      "invalid": 0,
+      "expected_range": [
+        0.0,
+        99.0
+      ],
+      "range_source": "profiling_report"
+    },
+    "support_tickets": {
+      "rule": "support_tickets_range",
+      "checked": 1000,
+      "valid": 1000,
+      "invalid": 0,
+      "expected_range": [
+        0.0,
+        5.0
+      ],
+      "range_source": "profiling_report"
+    },
+    "churn": {
+      "rule": "churn_categorical_membership",
+      "checked": 1000,
+      "valid": 1000,
+      "invalid": 0,
+      "allowed_values": [
+        "No",
+        "Yes"
+      ]
+    }
+  },
+  "anomaly_detection": {
+    "checked": 1000,
+    "anomalies": 50,
+    "anomaly_pct": 5.0,
+    "columns_used": [
+      "customer_id",
+      "monthly_charges",
+      "tenure_months",
+      "nps_score",
+      "support_tickets"
+    ],
+    "row_indices": [
+      39,
+      48,
+      56,
+      60,
+      65,
+      80,
+      89,
+      126,
+      130,
+      158,
+      171,
+      230,
+      245,
+      270,
+      275,
+      280,
+      324,
+      373,
+      375,
+      380,
+      388,
+      408,
+      413,
+      428,
+      436,
+      441,
+      450,
+      452,
+      495,
+      511,
+      515,
+      519,
+      551,
+      615,
+      686,
+      735,
+      752,
+      765,
+      808,
+      829,
+      843,
+      846,
+      873,
+      877,
+      906,
+      911,
+      924,
+      944,
+      953,
+      957
+    ]
+  },
+  "health_score": 97.35
+}

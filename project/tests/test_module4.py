@@ -64,3 +64,17 @@ def test_cli_rejects_missing_input_file():
     )
     assert result.returncode == 1
     assert "not found" in result.stdout.lower()
+
+
+def test_cli_help_flag_exits_cleanly():
+    """--help must exit 0 (argparse's own behaviour) -- a quick sanity
+    check that the CLI is wired correctly and doesn't error before
+    argparse even gets a chance to print help.
+    """
+    pipeline_path = Path(__file__).resolve().parents[1] / "modules" / "m4_pipeline" / "pipeline.py"
+    result = subprocess.run(
+        [sys.executable, str(pipeline_path), "--help"],
+        capture_output=True, text=True,
+    )
+    assert result.returncode == 0
+    assert "--input" in result.stdout

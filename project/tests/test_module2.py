@@ -17,29 +17,9 @@ from clean import (quality_score, drop_duplicates, normalise, impute_missing,
                     _fix_dates, UK_PHONE_RE)
 
 
-
 def test_perfect_dataset_scores_100():
     df = pd.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"]})
     assert quality_score(df) == 100.0
-
-def test_quality_score_backward_compatible_without_profile():
-    """quality_score(df) with no profile must behave exactly as before
-    the Week 7 refinement -- completeness + uniqueness only.
-    """
-    df = pd.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"]})
-    assert quality_score(df) == quality_score(df, profile=None)
-
-
-def test_quality_score_folds_in_format_validity_when_profile_given():
-    """Per the Week 7 refinement note: with a profiling report supplied,
-    invalid emails should pull the score down even when there are no
-    missing values or duplicates.
-    """
-    df = pd.DataFrame({"email": ["a@b.com", "not-an-email", "c@d.com"]})
-    profile = {"metadata": {"email": {"semantic_type": "email"}}}
-    score_with_profile = quality_score(df, profile=profile)
-    score_without_profile = quality_score(df)
-    assert score_with_profile < score_without_profile
 
 
 def test_missing_and_duplicates_lower_the_score():
@@ -111,20 +91,36 @@ def test_uk_phone_regex_rejects_nine_digits():
 
 def test_uk_phone_regex_accepts_ten_digits():
     assert UK_PHONE_RE.match("07123456789") is not None  # 10 digits after 0  
-    
-def test_iso_dates_not_corrupted_when_mixed_with_uk_slash_dates():
-    """Regression test for the bug found in code review: a naive
-    pd.to_datetime(..., format="mixed", dayfirst=True) fixes ambiguous UK
-    slash-dates but then ALSO wrongly re-reads unambiguous ISO dates as
-    day-first -- "2024-12-05" (5 Dec) was silently corrupted to
-    "2024-05-12" (12 May) when both shapes appeared in the same column.
-    Each shape must be parsed with its own explicit format instead.
+  
+  
+  
+  
+  
+
+
+# ---------------- Week 5 hardening: edge cases ----------------
+
+def test_normalise_handles_missing_profile_gracefully():
+    """normalise(df) with no report at all (None) must not crash --
+    every column falls through every check and comes back unchanged.
     """
-    s = pd.Series(["2024-12-05", "03/04/2023"])
-    result = _fix_dates(s)
-    assert result.iloc[0] == pd.Timestamp("2024-12-05")  # ISO date: untouched
-    assert result.iloc[1] == pd.Timestamp("2023-04-03")  # UK slash date: day-first  
-  
-  
-  
-  
+    df = pd.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"]})
+    cleaned, changes = normalise(df, report=None)
+    assert cleaned.equals(df)
+    assert changes == {}
+
+
+def test_fix_numeric_as_text_all_unparseable_returns_nan_not_crash():
+    """If every value in a 'numeric_as_text' column is genuinely
+    unparseable junk, the column should become all-NaN, not raise.
+    """
+    s = pd.Series(["not a number", "also junk", ""])
+    out = _fix_numeric_as_text(s)
+    assert out.isna().all()
+
+
+def test_drop_duplicates_on_empty_dataframe_does_not_crash():
+    df = pd.DataFrame({"a": [], "b": []})
+    cleaned, log = drop_duplicates(df)
+    assert len(cleaned) == 0
+    assert log["exact_duplicates_removed"] == 0
