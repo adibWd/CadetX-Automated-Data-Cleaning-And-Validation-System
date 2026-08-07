@@ -48,6 +48,16 @@ def build_profiling_report(df: pd.DataFrame, source: str = "",
                            with_figures: bool = True,
                            figures_dir: str | Path | None = None) -> dict:
     """Run the full Module 1 pipeline and return the profiling report dict."""
+    if df.empty:
+        # Found during Week 6 robustness testing: a header-only (zero-row)
+        # CSV used to crash several levels down inside profiling_engine.py
+        # with a bare ZeroDivisionError (missing_pct = n_missing / len(df)).
+        # Fail here instead, with a message that actually explains what's
+        # wrong, rather than a stack trace pointing at unrelated arithmetic.
+        raise ValueError(
+            f"Cannot profile an empty dataset (0 rows). Source: {source or 'unknown'!r}. "
+            "Check that the input CSV has data rows below its header."
+        )
     report = {
         "dataset": {
             "source": source,
@@ -80,9 +90,13 @@ def main():
     print(f"[Module 1] Profiling {input_path.name}")
     df = pd.read_csv(input_path)
 
-    report = build_profiling_report(
-        df, source=str(input_path), with_figures=not args.no_figures
-    )
+    try:
+        report = build_profiling_report(
+            df, source=str(input_path), with_figures=not args.no_figures
+        )
+    except ValueError as e:
+        print(f"✗ {e}")
+        sys.exit(1)
 
     out_path = Path(args.output)
     out_path.parent.mkdir(parents=True, exist_ok=True)
