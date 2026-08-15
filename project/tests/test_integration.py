@@ -93,3 +93,37 @@ def test_m4_pipeline_stops_at_stage_one_for_a_zero_row_csv(tmp_path):
     assert "M1 Profile failed" in result.stdout
     assert "M2 Clean" not in result.stdout  # never reached
     assert "M3 Validate" not in result.stdout  # never reached
+
+
+# ---------------- Week 7: M2/M3 empty-dataframe audit ----------------
+
+def test_m2_cli_fails_cleanly_on_a_zero_row_csv(tmp_path):
+    """Regression test for a real bug found during Week 7's audit: run
+    standalone (bypassing Module 1's guard entirely), Module 2 used to
+    silently exit 0 with 'quality: nan -> nan' instead of failing. Must
+    now fail loudly and cleanly instead.
+    """
+    empty_csv = tmp_path / "empty.csv"
+    empty_csv.write_text("customer_id,email,age\n")
+
+    result = run(str(MODULES / "m2_cleaning" / "clean.py"), "--input", str(empty_csv))
+
+    assert result.returncode != 0
+    assert "nan" not in result.stdout.lower()
+    assert "empty dataset" in (result.stdout + result.stderr).lower()
+
+
+def test_m3_cli_fails_cleanly_on_a_zero_row_csv(tmp_path):
+    """Regression test for a real bug found during Week 7's audit: run
+    standalone on an empty cleaned_data.csv, Module 3 used to silently
+    report a misleading 'health score: 100.0' (nothing was actually
+    checked). Must now fail loudly and cleanly instead.
+    """
+    empty_csv = tmp_path / "empty_cleaned.csv"
+    empty_csv.write_text("customer_id,email,age\n")
+
+    result = run(str(MODULES / "m3_validation" / "validate.py"), "--input", str(empty_csv))
+
+    assert result.returncode != 0
+    assert "100.0" not in result.stdout
+    assert "empty dataset" in (result.stdout + result.stderr).lower()

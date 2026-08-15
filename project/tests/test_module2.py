@@ -13,13 +13,43 @@ import pandas as pd
 sys.path.append(str(Path(__file__).resolve().parents[1] / "modules" / "m2_cleaning"))
 
 from clean import (quality_score, drop_duplicates, normalise, impute_missing,
-                    _fix_numeric_as_text, _fix_binary_categorical,
-                    _fix_dates, UK_PHONE_RE)
+                    _fix_numeric_as_text, _fix_binary_categorical, _fix_dates,
+                    UK_PHONE_RE)
 
 
 def test_perfect_dataset_scores_100():
     df = pd.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"]})
     assert quality_score(df) == 100.0
+
+
+def test_quality_score_backward_compatible_without_profile():
+    """quality_score(df) with no profile must behave exactly as before
+    the Week 7 refinement -- completeness + uniqueness only.
+    """
+    df = pd.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"]})
+    assert quality_score(df) == quality_score(df, profile=None)
+
+
+def test_quality_score_folds_in_format_validity_when_profile_given():
+    """With a profiling report supplied, invalid emails should pull the
+    score down even when there are no missing values or duplicates.
+    """
+    df = pd.DataFrame({"email": ["a@b.com", "not-an-email", "c@d.com"]})
+    profile = {"metadata": {"email": {"semantic_type": "email"}}}
+    score_with_profile = quality_score(df, profile=profile)
+    score_without_profile = quality_score(df)
+    assert score_with_profile < score_without_profile
+
+
+def test_quality_score_now_also_checks_postcode_validity():
+    """Week 7: postcode was added to quality_score's format-validity
+    check to match Module 3's coverage (previously only email/phone here).
+    """
+    df = pd.DataFrame({"postcode": ["SO31 8JT", "not a postcode"]})
+    profile = {"metadata": {"postcode": {"semantic_type": "postcode"}}}
+    score_with_profile = quality_score(df, profile=profile)
+    score_without_profile = quality_score(df)
+    assert score_with_profile < score_without_profile
 
 
 def test_missing_and_duplicates_lower_the_score():
@@ -41,9 +71,6 @@ def test_currency_symbols_stripped_to_float():
 
 
 def test_normalise_does_not_touch_phone_even_if_numeric_as_text():
-    """Regression test: a phone column can ALSO get flagged
-    'numeric_as_text' by Module 1, but must never be coerced to float.
-    """
     df = pd.DataFrame({"phone": ["07123456789", "07xx", "07234567890"]})
     report = {
         "metadata": {
@@ -68,8 +95,9 @@ def test_impute_missing_fills_all_nulls():
     cleaned, log = impute_missing(df)
     assert cleaned.isna().sum().sum() == 0
     assert len(log) == 2
+
+
 def test_ambiguous_uk_date_parsed_dayfirst():
-    """'03/04/2023' must parse as 3 April, not March 4th."""
     s = pd.Series(["03/04/2023"])
     result = _fix_dates(s)
     assert result.iloc[0].day == 3
@@ -77,33 +105,35 @@ def test_ambiguous_uk_date_parsed_dayfirst():
 
 
 def test_unambiguous_date_still_correct():
-    """Day > 12 leaves no ambiguity — sanity check dayfirst didn't break this."""
     s = pd.Series(["25/12/2023"])
     result = _fix_dates(s)
     assert result.iloc[0].day == 25
     assert result.iloc[0].month == 12
 
 
+def test_iso_dates_not_corrupted_when_mixed_with_uk_slash_dates():
+    """Regression test: a naive dayfirst=True flag fixes ambiguous UK
+    slash-dates but ALSO wrongly re-reads unambiguous ISO dates as
+    day-first -- "2024-12-05" was silently corrupted to "2024-05-12"
+    when both shapes appeared in the same column.
+    """
+    s = pd.Series(["2024-12-05", "03/04/2023"])
+    result = _fix_dates(s)
+    assert result.iloc[0] == pd.Timestamp("2024-12-05")
+    assert result.iloc[1] == pd.Timestamp("2023-04-03")
+
+
 def test_uk_phone_regex_rejects_nine_digits():
-    """A number one digit short of a valid UK mobile should not match."""
-    assert UK_PHONE_RE.match("0712345678") is None  # 9 digits after 0
+    assert UK_PHONE_RE.match("0712345678") is None
 
 
 def test_uk_phone_regex_accepts_ten_digits():
-    assert UK_PHONE_RE.match("07123456789") is not None  # 10 digits after 0  
-  
-  
-  
-  
-  
+    assert UK_PHONE_RE.match("07123456789") is not None
 
 
 # ---------------- Week 5 hardening: edge cases ----------------
 
 def test_normalise_handles_missing_profile_gracefully():
-    """normalise(df) with no report at all (None) must not crash --
-    every column falls through every check and comes back unchanged.
-    """
     df = pd.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"]})
     cleaned, changes = normalise(df, report=None)
     assert cleaned.equals(df)
@@ -111,9 +141,6 @@ def test_normalise_handles_missing_profile_gracefully():
 
 
 def test_fix_numeric_as_text_all_unparseable_returns_nan_not_crash():
-    """If every value in a 'numeric_as_text' column is genuinely
-    unparseable junk, the column should become all-NaN, not raise.
-    """
     s = pd.Series(["not a number", "also junk", ""])
     out = _fix_numeric_as_text(s)
     assert out.isna().all()
