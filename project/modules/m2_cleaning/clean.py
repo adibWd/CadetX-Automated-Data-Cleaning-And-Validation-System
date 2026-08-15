@@ -17,13 +17,6 @@ WHAT WAS BUILT (Week 2)
                                   clearly-invalid identifier values flagged
                                   instead of silently guessed at)
   - data-quality score          (computed BEFORE and AFTER, delta reported)
-
-WHAT CHANGED (Week 3 — code-review fixes + refinement)
-  - _fix_dates: dayfirst=True alone corrupted unambiguous ISO dates when
-    mixed with UK slash-dates in the same column. Rewritten to parse each
-    date shape explicitly.
-  - quality_score: now optionally folds in format-validity (email/phone)
-    from Module 1's profiling report, per the Week 7 refinement note.
 """
 from __future__ import annotations
 
@@ -54,10 +47,18 @@ def quality_score(df: pd.DataFrame, profile: dict | None = None) -> float:
 
     Base (always computed): completeness + uniqueness.
     When Module 1's profiling report is supplied, also folds in
-    format-validity for semantic columns (email/phone) -- this is the
-    Week 7 refinement from the project plan. Backward compatible:
-    quality_score(df) with no profile still returns exactly the old
-    completeness/uniqueness-only score.
+    format-validity for semantic columns (email/phone/postcode) -- the
+    Week 3 refinement, extended in Week 7 to also cover postcode, so this
+    matches Module 3's format-check coverage exactly (previously only
+    email/phone here vs email/phone/postcode there -- an inconsistency,
+    not a deliberate design choice). Backward compatible: quality_score(df)
+    with no profile still returns exactly the old completeness/uniqueness-
+    only score.
+
+    Deliberately does NOT fold in identifier-uniqueness (Module 3's new
+    Week 7 check) -- that's a stronger, more specific signal ("do two
+    rows claim to be the same customer") that belongs in the validation
+    report, not blended into a single cleaning-quality number.
     """
     completeness = 1 - df.isna().sum().sum() / df.size
     uniqueness = 1 - df.duplicated().sum() / len(df)
@@ -65,7 +66,11 @@ def quality_score(df: pd.DataFrame, profile: dict | None = None) -> float:
     if not profile:
         return round(100 * (0.7 * completeness + 0.3 * uniqueness), 2)
 
-    format_patterns = {"email": re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$"), "phone": UK_PHONE_RE}
+    format_patterns = {
+        "email": re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$"),
+        "phone": UK_PHONE_RE,
+        "postcode": re.compile(r"^[A-Za-z]{1,2}\d[A-Za-z\d]?\s?\d[A-Za-z]{2}$"),
+    }
     metadata = profile.get("metadata", {})
     validity_scores = []
     for col, meta in metadata.items():
@@ -170,6 +175,11 @@ def normalise(df: pd.DataFrame, report: dict | None = None) -> tuple[pd.DataFram
         inferred = col_meta.get("inferred_type")
         semantic = col_meta.get("semantic_type")
 
+        # 1) numbers stored as text with currency symbols / commas.
+        #    Only when genuinely numeric (semantic_type == "numeric").
+        #    Columns like phone/postcode can ALSO get flagged
+        #    "numeric_as_text" but must never be coerced to float --
+        #    that would destroy leading zeros and identifier meaning.
         if inferred == "numeric_as_text" and semantic == "numeric":
             before_sample = df[col].dropna().astype(str).head(3).tolist()
             df[col] = _fix_numeric_as_text(df[col])
@@ -178,6 +188,7 @@ def normalise(df: pd.DataFrame, report: dict | None = None) -> tuple[pd.DataFram
                              "after_sample": df[col].dropna().head(3).tolist()}
             continue
 
+        # 2) date-ish columns with more than one shape
         date_issue = (report or {}).get("rules", {}).get("inconsistent_formats", {}).get(col, {})
         if date_issue.get("issue") == "multiple date formats present":
             df[col] = _fix_dates(df[col])
@@ -185,6 +196,7 @@ def normalise(df: pd.DataFrame, report: dict | None = None) -> tuple[pd.DataFram
                              "formats_found": date_issue.get("formats_found")}
             continue
 
+        # 3) binary-ish categorical columns (Yes/yes/Y/1 style spellings)
         if df[col].dtype == object or pd.api.types.is_string_dtype(df[col]):
             distinct = set(str(v).strip().lower() for v in df[col].dropna().unique())
             if distinct and distinct.issubset(_YES_SET | _NO_SET):
@@ -194,6 +206,8 @@ def normalise(df: pd.DataFrame, report: dict | None = None) -> tuple[pd.DataFram
                                  "distinct_before": before_sample}
                 continue
 
+        # 4) identifier-like columns with obviously-junk placeholder values
+        #    (e.g. phone = "07xx"). Flagged, not guessed at.
         if semantic == "phone":
             is_invalid = ~df[col].astype(str).str.match(UK_PHONE_RE, na=False)
             n_invalid = int((is_invalid & df[col].notna()).sum())
@@ -212,6 +226,15 @@ def main():
 
     input_path = Path(args.input) if args.input else sorted(RAW_DIR.glob("*.csv"))[0]
     df = pd.read_csv(input_path)
+
+    if df.empty:
+        # Found during Week 7's audit: without this guard, an empty CSV
+        # doesn't crash -- it silently exits 0 with "quality: nan -> nan",
+        # which is worse than a crash (nothing flags it as wrong). Same
+        # class of bug as Module 1's Week 6 fix, applied here too.
+        print(f"✗ Cannot clean an empty dataset (0 rows): {input_path}")
+        sys.exit(1)
+
     profile = read_json(PROFILING_REPORT)
 
     score_before = quality_score(df, profile=profile)

@@ -14,6 +14,7 @@ sys.path.append(str(Path(__file__).resolve().parents[1] / "modules" / "m3_valida
 
 from validate import (check_format_column, check_numeric_range,
                        check_unexpected_negatives, check_categorical_membership,
+                       check_identifier_uniqueness,
                        rule_based_checks, anomaly_detection, health_score,
                        EMAIL_RE, UK_PHONE_RE, UK_POSTCODE_RE)
 
@@ -164,3 +165,35 @@ def test_anomaly_detection_with_single_numeric_column():
     result = anomaly_detection(df)
     assert result["checked"] == 50
     assert 0 <= result["anomalies"] <= 50
+
+
+# ---------------- Week 7: identifier-uniqueness check ----------------
+
+def test_identifier_uniqueness_flags_duplicate_ids():
+    """Two rows sharing the same customer_id must be flagged, even if
+    every OTHER column differs -- this is stronger than Module 2's
+    exact-row duplicate removal, which would never catch this case.
+    """
+    s = pd.Series([101, 102, 102, 103])
+    result = check_identifier_uniqueness(s, "customer_id")
+    assert result["checked"] == 4
+    assert result["invalid"] == 1
+    assert result["valid"] == 3
+
+
+def test_identifier_uniqueness_all_unique_passes():
+    s = pd.Series([101, 102, 103])
+    result = check_identifier_uniqueness(s, "customer_id")
+    assert result["invalid"] == 0
+
+
+def test_rule_based_checks_routes_identifier_columns():
+    """rule_based_checks() must route semantic_type == 'identifier' to
+    the uniqueness check, not fall through to the generic numeric checks
+    (which would miss the duplicate-ID problem entirely).
+    """
+    df = pd.DataFrame({"customer_id": [1, 2, 2, 3]})
+    profile = {"metadata": {"customer_id": {"semantic_type": "identifier"}}}
+    results = rule_based_checks(df, profile=profile)
+    assert results["customer_id"]["rule"] == "customer_id_identifier_uniqueness"
+    assert results["customer_id"]["invalid"] == 1

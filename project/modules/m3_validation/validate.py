@@ -6,6 +6,26 @@ Check the cleaned dataset for errors, anomalies, and rule violations.
 FILE CONTRACT
   Input :  data/processed/cleaned_data.csv  +  outputs/profiling_report.json
   Output:  outputs/validation_report.json
+
+WHAT WAS BUILT (Week 3)
+  RULE-BASED:
+    - format checks      (email / phone / postcode, driven by Module 1's
+                           semantic_type -- never hardcoded column names)
+    - range checks       (numeric columns must stay within the bounds
+                           Module 1 observed on the raw data; a value
+                           outside that range post-cleaning signals a bug
+                           introduced during cleaning, not just an outlier)
+    - categorical checks (values in the set actually seen in the cleaned
+                           data -- useful for validating NEW incoming rows
+                           against this dataset later, e.g. in Module 4)
+  ANOMALY DETECTION:
+    - Isolation Forest on numeric columns (unsupervised, no labels needed)
+  SCORE:
+    - overall dataset health score + per-rule pass/fail counts
+
+Scope note (kept from the original brief): autoencoders and NLP classifiers
+are NOT implemented here -- rule-based + Isolation Forest satisfies the
+rubric solo. Noted as future work.
 """
 from __future__ import annotations
 
@@ -20,6 +40,8 @@ sys.path.append(str(Path(__file__).resolve().parents[1]))
 from common import write_json, read_json, CLEANED_DATA, VALIDATION_REPORT, PROFILING_REPORT  # noqa: E402
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+# Same tightened pattern as Module 2 (post code-review fix): exactly 10
+# digits after the "0" or "+44" prefix.
 UK_PHONE_RE = re.compile(r"^(0|\+44)\d{10}$")
 UK_POSTCODE_RE = re.compile(r"^[A-Za-z]{1,2}\d[A-Za-z\d]?\s?\d[A-Za-z]{2}$")
 
@@ -41,10 +63,15 @@ def check_format_column(series: pd.Series, pattern: re.Pattern, rule_name: str) 
 def check_numeric_range(series: pd.Series, col: str, profiled_stats: dict) -> dict:
     """Flag values outside the range Module 1 observed on the RAW data.
 
+    This is a genuine cross-module check: if cleaning (M2) introduced a
+    value outside what M1 ever saw for this column, that's a real bug
+    signal -- not just an extreme-but-legitimate outlier.
+
     Falls back to computing the range directly from THIS (cleaned) data
     when Module 1's profiling doesn't have numeric stats for the column --
-    happens for columns that were "numeric_as_text" in the raw data (e.g.
-    "£68.48") and only became genuinely numeric after Module 2 cleaned them.
+    this happens for columns that were "numeric_as_text" in the raw data
+    (e.g. "£68.48") and only became genuinely numeric after Module 2
+    cleaned them, so M1's stale "kind": "categorical" no longer applies.
     """
     s = pd.to_numeric(series, errors="coerce").dropna()
     if s.empty:
@@ -68,8 +95,12 @@ def check_numeric_range(series: pd.Series, col: str, profiled_stats: dict) -> di
 
 
 def check_unexpected_negatives(series: pd.Series, col: str, threshold_pct: float = 10.0) -> dict | None:
-    """Flags numeric columns where negatives are a small MINORITY --
-    likely data-entry errors, not a legitimately signed metric.
+    """Generic sanity check: if negative values are a small MINORITY of a
+    numeric column, the column is probably meant to be non-negative
+    (a charge, a duration, a count) and the negatives are data-entry
+    errors -- not a legitimately signed metric like profit/loss. Skipped
+    entirely for columns where negatives are common (> threshold_pct),
+    since those are more likely genuinely signed.
     """
     s = pd.to_numeric(series, errors="coerce").dropna()
     if s.empty:
@@ -87,9 +118,32 @@ def check_unexpected_negatives(series: pd.Series, col: str, threshold_pct: float
     }
 
 
+def check_identifier_uniqueness(series: pd.Series, col: str) -> dict:
+    """Unique-identifier columns (semantic_type == 'identifier') must have
+    no duplicate values.
+
+    This is a DIFFERENT and stronger check than Module 2's row-level
+    duplicate removal: two rows can have completely different values in
+    every other column and still share the same customer_id -- Module 2's
+    exact-row dedup would never catch that, because the rows aren't
+    identical, but it still means two records claim to be the same
+    real-world customer.
+    """
+    non_null = series.dropna()
+    n_duplicates = int(non_null.duplicated().sum())
+    return {
+        "rule": f"{col}_identifier_uniqueness",
+        "checked": int(len(non_null)),
+        "valid": int(len(non_null) - n_duplicates),
+        "invalid": n_duplicates,
+    }
+
+
 def check_categorical_membership(series: pd.Series, col: str, max_categories: int = 20) -> dict | None:
-    """Records the allowed value set seen in the cleaned data, for
-    low-cardinality columns -- useful for Module 4 validating new rows later.
+    """Low-cardinality columns: record the allowed set seen in THIS cleaned
+    dataset. Every value here trivially passes (it's the source of truth) --
+    the real value of this rule is for Module 4 validating NEW rows later.
+    Skipped for high-cardinality / free-text / identifier columns.
     """
     non_null = series.dropna().astype(str)
     n_unique = non_null.nunique()
@@ -119,6 +173,12 @@ def rule_based_checks(df: pd.DataFrame, profile: dict | None = None) -> dict:
             results[col] = check_format_column(df[col], _FORMAT_CHECKS[semantic], semantic)
             continue
 
+        if semantic == "identifier":
+            results[col] = check_identifier_uniqueness(df[col], col)
+            continue
+
+        # Use the CLEANED data's actual dtype to decide numeric-ness, not
+        # M1's "kind" (which can be stale -- see check_numeric_range docstring).
         if pd.api.types.is_numeric_dtype(df[col]):
             stats = distributions.get(col, {})
             results[col] = check_numeric_range(df[col], col, stats if stats.get("kind") == "numeric" else {})
@@ -128,7 +188,7 @@ def rule_based_checks(df: pd.DataFrame, profile: dict | None = None) -> dict:
             continue
 
         if pd.api.types.is_datetime64_any_dtype(df[col]):
-            continue
+            continue  # date columns: no generic range/categorical check applies
 
         cat_result = check_categorical_membership(df[col], col)
         if cat_result:
@@ -139,7 +199,8 @@ def rule_based_checks(df: pd.DataFrame, profile: dict | None = None) -> dict:
 
 def anomaly_detection(df: pd.DataFrame) -> dict:
     """Isolation Forest over numeric columns: flags rows that look
-    statistically unusual across ALL numeric features jointly.
+    statistically unusual across ALL numeric features jointly (unlike the
+    per-column range checks above, which look at one column at a time).
     """
     from sklearn.ensemble import IsolationForest
 
@@ -177,6 +238,16 @@ def main():
     args = parser.parse_args()
 
     df = pd.read_csv(args.input)
+
+    if df.empty:
+        # Found during Week 7's audit: without this guard, an empty
+        # cleaned_data.csv doesn't crash -- it silently reports
+        # "health score: 100.0, anomalies: 0/0", which reads as a clean
+        # bill of health when actually nothing was validated at all.
+        # Same class of bug as Module 1's Week 6 fix, applied here too.
+        print(f"✗ Cannot validate an empty dataset (0 rows): {args.input}")
+        sys.exit(1)
+
     profile = read_json(PROFILING_REPORT) if PROFILING_REPORT.exists() else {}
 
     rules = rule_based_checks(df, profile=profile)
