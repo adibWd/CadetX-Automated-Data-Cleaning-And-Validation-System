@@ -127,6 +127,12 @@ functions (the ones with names, not `main()`) are all covered.
 
 ---
 
+## Future Work
+
+Extensions considered and evaluated against the real dataset, but
+deliberately scoped out of the current build — see
+[docs/FUTURE_WORK.md](docs/FUTURE_WORK.md).
+
 ## Dataset
 
 **`data/raw/broadband_customers.csv`** — a synthetic UK rural fibre-broadband
