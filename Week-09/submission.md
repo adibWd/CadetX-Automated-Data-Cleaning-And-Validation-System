@@ -1,7 +1,8 @@
 # Week 09 — Submission
 
 **Sprint dates:** _22 Aug 2026 → 29 Aug 2026_
-**Maintainer this week:** [Your name] — solo
+<br>
+**Scrum Master this week:** Adib Hassan— AI
 
 ## What I did this week
 
