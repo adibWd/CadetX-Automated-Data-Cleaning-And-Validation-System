@@ -23,15 +23,23 @@ stays dataset-agnostic like Module 1.
 ## How to run
 
 ```bash
-python3 clean.py --input data/raw/broadband_customers.csv
+# Run from the project ROOT (project/), not from inside this folder —
+# --input is a relative path resolved against your current directory.
+python3 modules/m2_cleaning/clean.py --input data/raw/broadband_customers.csv
 ```
 
 ```python
 # As a library
+import sys
+sys.path.append("modules/m2_cleaning")
+sys.path.append("modules")
 import pandas as pd
 from clean import drop_duplicates, normalise, impute_missing, quality_score
+from common import read_json, PROFILING_REPORT
 
 df = pd.read_csv("data/raw/broadband_customers.csv")
+profiling_report = read_json(PROFILING_REPORT)   # Module 1 must have run first
+
 df, _ = drop_duplicates(df)
 df, _ = normalise(df, report=profiling_report)
 df, _ = impute_missing(df, report=profiling_report)

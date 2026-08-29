@@ -114,11 +114,11 @@ cadetx-data-quality/
 ## Testing
 
 ```bash
-pytest tests/ -v          # 49 tests across all 4 modules
+pytest tests/ -v          # 63 tests across all 4 modules + integration
 make test-cov             # same, with a coverage report
 ```
 
-Coverage sits around 69% overall. The consistent gap across every module
+Coverage sits around 68% overall (last measured Week 9). The consistent gap across every module
 is each module's own `main()` / CLI-argument-parsing function — these are
 exercised by the end-to-end pipeline run (`make pipeline`) rather than by
 unit tests, which is a deliberate choice: unit-testing argparse wiring
@@ -126,12 +126,6 @@ adds little value over just running the real thing. The actual logic
 functions (the ones with names, not `main()`) are all covered.
 
 ---
-
-## Future Work
-
-Extensions considered and evaluated against the real dataset, but
-deliberately scoped out of the current build — see
-[docs/FUTURE_WORK.md](docs/FUTURE_WORK.md).
 
 ## Dataset
 
@@ -146,7 +140,8 @@ Gigaclear (rural counties, gigabit packages, churn, NPS, customer segmentation).
 **Key columns:** `customer_id`, `full_name`, `email`, `phone`, `postcode`,
 `region`, `property_type`, `package` (Fibre 100/300/500/900), `monthly_charges`,
 `contract_type`, `tenure_months`, `install_date`, `payment_method`, `nps_score`
-(0–10), `support_tickets`, `churn`.
+(intended range 0–10 — but see "planted issues" below, this is one of them),
+`support_tickets`, `churn`.
 
 **Planted issues (ground truth):** missing values, duplicate rows, invalid
 emails/postcodes/phones, out-of-range NPS, impossible negatives, inconsistent
@@ -161,4 +156,12 @@ Python (pandas, numpy, scikit-learn, matplotlib) · Git/GitHub · Scrum
 
 ## Status
 
-🚧 In progress — built module by module. See weekly progress in `docs/`.
+Core pipeline (Modules 1–4) complete and tested. Currently in the
+documentation/hardening phase (weeks 5–9 of the 12-week plan) ahead of
+the Week 10 final demo build. See weekly progress in `docs/`.
+
+## Future Work
+
+Extensions considered and evaluated against the real dataset, but
+deliberately scoped out of the current build — see
+[docs/FUTURE_WORK.md](docs/FUTURE_WORK.md).

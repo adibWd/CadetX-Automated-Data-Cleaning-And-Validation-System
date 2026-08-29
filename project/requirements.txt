@@ -1,9 +1,12 @@
-# Core (Weeks 1-2)
+# Core — all of these are genuinely required, not optional.
+# (Week 9 accuracy pass: seaborn and pytest were previously commented out
+# as "add if you need them", but visualisations.py hard-imports seaborn,
+# and the documented `pytest tests/ -v` command needs pytest installed.
+# `pip install -r requirements.txt` alone used to leave both missing.)
 pandas
 numpy
 matplotlib
+seaborn
 scikit-learn
-
-# Add as you need them, e.g.:
-# seaborn          # nicer profiling visuals
-# pytest           # tests (Week 5)
+pytest
+pytest-cov
