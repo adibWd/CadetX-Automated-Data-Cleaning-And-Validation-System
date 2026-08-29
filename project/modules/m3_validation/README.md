@@ -37,6 +37,7 @@ python3 validate.py --input path/to/other_cleaned.csv
 check_format_column(series, pattern, rule_name) -> dict
 check_numeric_range(series, col, profiled_stats) -> dict
 check_unexpected_negatives(series, col, threshold_pct=10.0) -> dict | None
+check_identifier_uniqueness(series, col) -> dict
 check_categorical_membership(series, col, max_categories=20) -> dict | None
 rule_based_checks(df, profile=None) -> dict
 anomaly_detection(df) -> dict
@@ -65,6 +66,12 @@ health_score(rules, anomalies) -> float
   whereas a column where negatives are common is more likely genuinely
   signed (e.g. profit/loss) and shouldn't be flagged. This is how the
   negative `monthly_charges` and `tenure_months` rows were found.
+- **Identifier uniqueness** (added Week 7, beyond the original brief) —
+  routed via `semantic_type == "identifier"`. Checks that a column like
+  `customer_id` has no duplicate values. This is a different, stronger
+  check than Module 2's row-level exact-duplicate removal: two rows can
+  differ in every other column and still share the same ID, which
+  row-level dedup would never catch.
 - **Categorical membership** — records the allowed value set actually
   seen in *this* cleaned dataset for low-cardinality columns. Every value
   trivially passes here (it's the source of truth); the real value is for

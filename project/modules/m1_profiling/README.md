@@ -4,8 +4,15 @@ Understands a dataset **before** any cleaning or ML happens: extracts metadata,
 profiles the data in depth, generates backend visualisations, and flags
 suspicious or sensitive columns.
 
-**Output:** `profiling_report.json` (schema in [`schema.json`](schema.json))
+**Output:** `profiling_report.json`
 **Design:** dataset-agnostic — runs on any CSV with zero code changes.
+
+> Note (Week 9 accuracy pass): an earlier version of this README linked to
+> a `schema.json` file documenting the report structure. That file was
+> never actually created — removed the dead link rather than leave it.
+> The report's structure is documented inline below instead
+> (`build_profiling_report`'s return shape: `dataset`, `metadata`,
+> `profiling`, `rules`, `figures`).
 
 ---
 
@@ -28,13 +35,16 @@ Dependency direction: `profiling_api.py` → (`metadata`, `profiling_engine`,
 ## How to run
 
 ```bash
-# CLI
-python profiling_api.py --input data/raw/broadband_customers.csv
-python profiling_api.py --input data/raw/any.csv --no-figures   # skip PNGs
+# CLI — run from the project ROOT (project/), not from inside this folder:
+# --input is a relative path resolved against your current directory.
+python modules/m1_profiling/profiling_api.py --input data/raw/broadband_customers.csv
+python modules/m1_profiling/profiling_api.py --input data/raw/any.csv --no-figures   # skip PNGs
 ```
 
 ```python
 # As a library
+import sys
+sys.path.append("modules/m1_profiling")
 import pandas as pd
 from profiling_api import build_profiling_report
 
@@ -75,8 +85,7 @@ build_profiling_report(df, source="", with_figures=True, figures_dir=None) -> di
   `metadata[col].inferred_type` to choose an imputation strategy, and
   `rules.suspicious_columns` / `rules.inconsistent_formats` to target cleaning.
 - **Contract:** the report always contains `dataset`, `metadata`, `profiling`,
-  and `rules`. `figures` may be empty if run with `--no-figures`. Validate against
-  `schema.json`.
+  and `rules`. `figures` may be empty if run with `--no-figures`.
 - **Tuning:** detection thresholds live at the top of each file
   (`MATCH_THRESHOLD`, `HIGH_MISSING_PCT`, `HIGH_CARDINALITY`). Adjust there, not
   inline.
