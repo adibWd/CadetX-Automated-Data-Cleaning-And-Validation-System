@@ -1,74 +1,142 @@
 """
-MODULE 1 · FILE 6a — END-TO-END DEMO
+FINAL DEMO — END-TO-END WALKTHROUGH
 ====================================
-Runnable demonstration of Module 1. Two purposes:
-  1. Show the full profiling pipeline on the broadband dataset.
-  2. PROVE it is dataset-agnostic by running the SAME code, zero changes,
-     on a completely unrelated dataset.
+Runs the full pipeline (M1 -> M2 -> M3) on the real dataset and prints a
+presentation-friendly summary: what went in, what came out, and the real
+bugs this project found along the way.
 
 Run:  python demo.py
+(from the project root — same place you'd run `make pipeline`)
+
+This supersedes the Week-1 demo.py (relocated to
+modules/m1_profiling/demo.py, still runnable on its own), which only
+demonstrated Module 1 on tiny hand-written sample data. This demo runs
+the REAL dataset through the REAL pipeline and reports REAL numbers —
+nothing here is staged.
 """
 from __future__ import annotations
 
+import json
+import subprocess
 import sys
 from pathlib import Path
 
-import pandas as pd
+ROOT = Path(__file__).resolve().parent
+RAW_DATA = ROOT / "data" / "raw" / "broadband_customers.csv"
+OUTPUTS = ROOT / "outputs"
 
-sys.path.append(str(Path(__file__).resolve().parent / "modules" / "m1_profiling"))
-from profiling_api import build_profiling_report  # noqa: E402
+
+def section(title: str) -> None:
+    print("\n" + "=" * 64)
+    print(title)
+    print("=" * 64)
 
 
-def summarise(name: str, df: pd.DataFrame) -> None:
-    print("\n" + "=" * 60)
-    print(f"DATASET: {name}   ({len(df)} rows x {df.shape[1]} cols)")
-    print("=" * 60)
-    report = build_profiling_report(df, source=name, with_figures=False)
+def run_pipeline() -> None:
+    section("STEP 1 — Run the full pipeline (one command)")
+    print(f"$ python modules/m4_pipeline/pipeline.py --input {RAW_DATA.relative_to(ROOT)}\n")
+    result = subprocess.run(
+        [sys.executable, str(ROOT / "modules" / "m4_pipeline" / "pipeline.py"),
+         "--input", str(RAW_DATA)],
+    )
+    if result.returncode != 0:
+        print("\n✗ Pipeline failed — stopping demo.")
+        sys.exit(1)
 
-    pii = list(report["rules"]["potential_pii"].keys())
-    suspicious = report["rules"]["suspicious_columns"]
-    formats = report["rules"]["inconsistent_formats"]
 
-    print(f"PII columns flagged:      {pii or 'none'}")
-    print(f"Suspicious columns:       {list(suspicious.keys()) or 'none'}")
-    print(f"Format issues found in:   {list(formats.keys()) or 'none'}")
+def load(name: str) -> dict:
+    with open(OUTPUTS / name, encoding="utf-8") as f:
+        return json.load(f)
 
-    # show a couple of metadata inferences
-    print("Sample type inferences:")
-    for col in list(df.columns)[:4]:
-        m = report["metadata"][col]
-        print(f"   {col:16} -> {m['inferred_type']:16} ({m['semantic_type']})")
+
+def show_profiling_summary() -> None:
+    section("STEP 2 — What Module 1 found in the raw data")
+    report = load("profiling_report.json")
+    print(f"Rows profiled:        {report['dataset']['rows']}")
+    print(f"PII columns flagged:  {list(report['rules']['potential_pii'].keys())}")
+    print(f"Suspicious columns:   {report['rules']['suspicious_columns']}")
+    print(f"Inconsistent formats: {list(report['rules']['inconsistent_formats'].keys())}")
+
+
+def show_cleaning_summary() -> None:
+    section("STEP 3 — What Module 2 fixed")
+    log = load("cleaning_log.json")
+    print(f"Quality score: {log['quality_score_before']} -> {log['quality_score_after']} "
+          f"(delta {log['quality_delta']})")
+    for action in log["actions"]:
+        if action["step"] == "drop_duplicates":
+            print(f"  - Removed {action['exact_duplicates_removed']} exact duplicate rows")
+        elif action["step"] == "normalise":
+            changed_cols = list(action["details"].keys())
+            print(f"  - Normalised formats in: {changed_cols}")
+        elif action["step"] == "impute_missing":
+            imputed_cols = [entry["column"] for entry in action["details"]]
+            print(f"  - Imputed missing values in: {imputed_cols}")
+
+
+def show_validation_summary() -> None:
+    section("STEP 4 — What Module 3 checked and found")
+    report = load("validation_report.json")
+    print(f"Health score: {report['health_score']}")
+    anomalies = report["anomaly_detection"]
+    print(f"Anomalies flagged: {anomalies['anomalies']} / {anomalies['checked']} rows "
+          f"({anomalies.get('anomaly_pct')}%)")
+
+    print("\nNotable rule results:")
+    rules = report["rule_based"]
+    for col in ("monthly_charges__negatives", "tenure_months__negatives", "customer_id"):
+        if col in rules:
+            r = rules[col]
+            print(f"  - {r['rule']}: {r['invalid']} / {r['checked']} flagged")
+
+
+def show_bugs_found() -> None:
+    section("STEP 5 — Real bugs this project found (the actual story)")
+    bugs = [
+        ("Week 3", "phone/numeric_as_text miscoercion",
+         "A phone column got flagged 'numeric_as_text' by Module 1 (most "
+         "values look like digit strings) alongside its real semantic_type "
+         "'phone'. Naive handling coerced phone numbers to float, "
+         "destroying leading zeros. Fixed by requiring semantic_type == "
+         "'numeric' before applying currency-strip conversion."),
+        ("Week 3", "date-parsing corruption",
+         "pd.to_datetime(..., dayfirst=True) fixes ambiguous UK slash-dates "
+         "but silently corrupts unambiguous ISO dates when both shapes "
+         "appear in the same column ('2024-12-05' -> wrongly became "
+         "'2024-05-12'). Fixed with explicit per-shape parsing."),
+        ("Week 6", "empty-dataset crash (Module 1)",
+         "A header-only CSV crashed with a raw ZeroDivisionError deep "
+         "inside profiling_engine.py. Fixed with a clear guard and message."),
+        ("Week 7", "empty-dataset silent bad output (Modules 2 & 3)",
+         "Worse than a crash: Module 2 silently reported "
+         "'quality: nan -> nan' and exited 0; Module 3 silently reported "
+         "a misleading 'health score: 100.0' for zero rows checked. "
+         "Both now fail loudly instead."),
+        ("Week 9", "requirements.txt missing hard dependencies",
+         "seaborn and pytest were listed as 'optional' but are actually "
+         "required — verified in a genuinely clean virtual environment "
+         "that a new contributor following the README exactly would hit "
+         "ModuleNotFoundError on their first run."),
+    ]
+    for week, title, desc in bugs:
+        print(f"\n[{week}] {title}")
+        print(f"  {desc}")
 
 
 def main():
-    # --- Dataset 1: broadband customers (the project dataset) ---
-    broadband = pd.DataFrame({
-        "customer_id": range(10000, 10010),
-        "email": ["a@x.com", "bad-email", "c@y.co.uk", "d@z.com", "no-at",
-                  "f@x.com", "g@y.com", "h@z.co.uk", "i@x.com", "j@y.com"],
-        "postcode": ["OX7 3AB", "12345", "GL56 9HQ", "SN7 8RF", "ABCDE",
-                     "RG9 1AA", "OX1 2JD", "GL7 1XX", "SN6 8PQ", "CB1 3AA"],
-        "monthly_charges": [29.99, "£44.99", 54.99, 64.99, 29.99,
-                            44.99, 54.99, "£64.99", 29.99, 44.99],
-        "nps_score": [8, 9, 11, 7, None, 6, 10, 8, 9, 7],
-        "churn": ["Yes", "no", "Y", "No", "N", "Yes", "No", "1", "No", "0"],
-    })
+    if not RAW_DATA.exists():
+        print(f"✗ Dataset not found: {RAW_DATA}")
+        sys.exit(1)
 
-    # --- Dataset 2: completely unrelated (retail sales) — ZERO code changes ---
-    sales = pd.DataFrame({
-        "order_id": ["ORD-1", "ORD-2", "ORD-3", "ORD-4", "ORD-5"],
-        "product": ["Widget", "Gadget", "Widget", "Gizmo", "Gadget"],
-        "quantity": [3, 1, 5, 2, 4],
-        "unit_price": [9.99, 19.99, 9.99, 14.50, 19.99],
-        "order_date": ["2026-01-01", "2026-01-02", "2026-01-03", "2026-01-04", "2026-01-05"],
-    })
+    run_pipeline()
+    show_profiling_summary()
+    show_cleaning_summary()
+    show_validation_summary()
+    show_bugs_found()
 
-    summarise("Broadband customers", broadband)
-    summarise("Retail sales (unrelated)", sales)
-
-    print("\n" + "=" * 60)
-    print("PROOF: identical code profiled both datasets with zero changes.")
-    print("=" * 60)
+    section("DONE")
+    print("Full reports are in outputs/. See README.md for the complete")
+    print("architecture, and docs/FUTURE_WORK.md for what's next.")
 
 
 if __name__ == "__main__":
