@@ -71,6 +71,16 @@ python modules/m3_validation/validate.py
 
 All JSON reports land in `outputs/`. The cleaned dataset lands in `data/processed/`.
 
+### Want the guided walkthrough instead?
+
+```bash
+python demo.py
+```
+
+Runs the full pipeline on the real dataset and prints a presentation-
+friendly summary of what each module found/fixed, plus the real bugs
+this project caught along the way. This is what the Week 10 demo runs.
+
 ### Or use the Makefile
 
 ```bash
