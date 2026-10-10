@@ -1,7 +1,7 @@
 # Week 01 — Submission
 
 **Sprint dates:** _27 Jun 2026 → 04 Jul 2026_ 
-**Scrum Master this week:** Balaji Manjulamma Sriramareddy (volunteered to take the first rotation)
+**Scrum Master this week:** Adib Hassan (volunteered to take the first rotation)
 
 ## What I did this week
 
