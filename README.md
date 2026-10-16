@@ -1,7 +1,7 @@
 # CadetX Project — Automated Data Quality & Validation System
 
 CadetX Virtual Work Experience submission.
-**Intern:** Balaji Manjulamma Sriramareddy
+**Intern:** Adib Hassan
 
 This repository holds both the **weekly programme submissions** (`Week-01` …
 `Week-12`) and the **project code** (`project/`).
